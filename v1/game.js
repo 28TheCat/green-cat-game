@@ -1180,14 +1180,24 @@
   }
 
   function render(dt) {
+    // 按实际像素清空整张画布，避免边框改变宽高比例后留下残影。
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#d2e7bf';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(view.scale, 0, 0, view.scale, 0, 0);
-    ctx.clearRect(0, 0, W, H);
 
     drawBoard();
+    // 贴图、碰撞变形和粒子可伸出碰撞圆，但不可画到容器外。
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(WALL, 0, W - WALL * 2, H - WALL);
+    ctx.clip();
     drawBalls();
     drawAim();
     /* 定格期间把特效的 dt 也压成 0，让它跟世界一起停住 */
     drawEffects(state.freeze > 0 ? 0 : dt);
+    ctx.restore();
 
     if (state.flash > 0) {
       ctx.save();
