@@ -603,3 +603,20 @@ body {
   .stat-value { font-size: 26px; }
   .btn { font-size: 14px; }
 }
+
+
+/* 手机棋盘按实际面板、间隙和边框计算尺寸（game.js）。
+   garden.css 后加载，尺寸规则必须覆盖其固定高度。 */
+@media (max-width: 860px) {
+  body { height: var(--vh); }
+  .app { min-height: 0; min-width: 0; }
+  .panel { flex-shrink: 0; }
+  .app .stage {
+    align-self: center;
+    width: var(--board-width, auto) !important;
+    height: var(--board-height, 60vh) !important;
+    min-width: 0;
+    min-height: 0;
+    flex: 0 0 auto;
+  }
+}
