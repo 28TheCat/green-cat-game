@@ -206,13 +206,46 @@
 
   const view = { scale: 1 };
 
+  function fitMobileBoard() {
+    if (!window.matchMedia('(max-width: 860px)').matches) return;
+
+    // 老浏览器也使用实际可视高度，地址栏展开/收起时重新计算。
+    const viewportHeight = Math.min(window.innerHeight,
+      window.visualViewport ? window.visualViewport.height : window.innerHeight);
+    document.documentElement.style.setProperty('--vh', viewportHeight + 'px');
+
+    const app = stage.parentElement;
+    const panel = app.querySelector('.panel');
+    if (!panel) return;
+    const layout = getComputedStyle(app);
+    const border = getComputedStyle(stage);
+    const horizontal = layout.flexDirection === 'row';
+    const gap = parseFloat(horizontal ? layout.columnGap : layout.rowGap) || 0;
+    const panelRect = panel.getBoundingClientRect();
+    const panelStyle = getComputedStyle(panel);
+    const px = value => parseFloat(value) || 0;
+    const availableWidth = app.clientWidth - px(layout.paddingLeft) - px(layout.paddingRight)
+      - (horizontal ? panelRect.width + px(panelStyle.marginLeft) + px(panelStyle.marginRight) + gap : 0);
+    const availableHeight = app.clientHeight - px(layout.paddingTop) - px(layout.paddingBottom)
+      - (horizontal ? 0 : panelRect.height + px(panelStyle.marginTop) + px(panelStyle.marginBottom) + gap);
+    const borderX = px(border.borderLeftWidth) + px(border.borderRightWidth);
+    const borderY = px(border.borderTopWidth) + px(border.borderBottomWidth);
+    // 420:700 是画布内容比例，不是带花园边框的外框比例。
+    const scale = Math.max(0, Math.min((availableWidth - borderX) / W,
+                                      (availableHeight - borderY) / H));
+    stage.style.setProperty('--board-width', (W * scale + borderX) + 'px');
+    stage.style.setProperty('--board-height', (H * scale + borderY) + 'px');
+  }
+
   function resizeCanvas() {
+    fitMobileBoard();
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width  = Math.max(1, Math.round(rect.width  * dpr));
     canvas.height = Math.max(1, Math.round(rect.height * dpr));
-    view.scale = (rect.width * dpr) / W;
+    // 兼容边框和像素取整：完整逻辑高度（含 y=690 地板）必须在画布内。
+    view.scale = Math.min(canvas.width / W, canvas.height / H);
   }
 
   /* ---------------------------------------------------------
@@ -1345,9 +1378,15 @@
   function boot() {
     resizeCanvas();
     if (window.ResizeObserver) {
-      new ResizeObserver(resizeCanvas).observe(stage);
+      const boardObserver = new ResizeObserver(resizeCanvas);
+      boardObserver.observe(stage);
+      boardObserver.observe(stage.parentElement);
+      const panel = stage.parentElement.querySelector('.panel');
+      if (panel) boardObserver.observe(panel);
     }
     window.addEventListener('resize', resizeCanvas);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', resizeCanvas);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(resizeCanvas);
     window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 120));
 
     paintSoundBtn();
@@ -1373,4 +1412,5 @@
                      render, resizeCanvas, shapeOf, makeBall, paintRevives, addScore,
                      MAX_BONUS, REVIVE_STEP };
 })();
+
 
