@@ -52,27 +52,27 @@
 
   const FRUITS = [
     { name: '裹毯绿猫',   r: 17,  c1: '#c084f5', c2: '#7a3fb0', line: 'rgba(74,26,120,.35)',
-      file: 'assets/fruits/1.png',     pc1: '#b8d899', pc2: '#78ad60' },
+      file: 'assets/fruits/1.webp',     pc1: '#b8d899', pc2: '#78ad60' },
     { name: '托盘绿猫',   r: 23,  c1: '#ff8a99', c2: '#c62346', line: 'rgba(120,10,40,.35)',
-      file: 'assets/fruits/2.png',    pc1: '#b8d899', pc2: '#78ad60' },
+      file: 'assets/fruits/2.webp',    pc1: '#b8d899', pc2: '#78ad60' },
     { name: '贴贴绿猫',   r: 31,  c1: '#ffc06a', c2: '#e0741a', line: 'rgba(140,62,0,.32)',
-      file: 'assets/fruits/3.png',    pc1: '#b8d899', pc2: '#78ad60' },
+      file: 'assets/fruits/3.webp',    pc1: '#b8d899', pc2: '#78ad60' },
     { name: '疑惑绿猫',   r: 39,  c1: '#fff285', c2: '#e0b000', line: 'rgba(140,110,0,.32)',
-      file: 'assets/fruits/4.png',     pc1: '#b8d899', pc2: '#78ad60' },
+      file: 'assets/fruits/4.webp',     pc1: '#b8d899', pc2: '#78ad60' },
     { name: '背包绿猫', r: 48,  c1: '#b9e05a', c2: '#5d8c1c', line: 'rgba(60,90,10,.32)',
-      file: 'assets/fruits/5.png',      pc1: '#b8d899', pc2: '#78ad60' },
+      file: 'assets/fruits/5.webp',      pc1: '#b8d899', pc2: '#78ad60' },
     { name: '绿猫 6',   r: 58,  c1: '#ff8a66', c2: '#c62f28', line: 'rgba(120,20,10,.32)',
-      file: 'assets/fruits/6.png',    pc1: '#b8d899', pc2: '#78ad60' },
+      file: 'assets/fruits/6.webp',    pc1: '#b8d899', pc2: '#78ad60' },
     { name: '绿猫 7',   r: 69,  c1: '#ffd0d0', c2: '#ea7f93', line: 'rgba(160,60,80,.3)',
-      file: 'assets/fruits/7.png',     pc1: '#b8d899', pc2: '#78ad60' },
+      file: 'assets/fruits/7.webp',     pc1: '#b8d899', pc2: '#78ad60' },
     { name: '绿猫 8',   r: 81,  c1: '#ffe07a', c2: '#c88a12', line: 'rgba(130,80,0,.32)',
-      file: 'assets/fruits/8.png', pc1: '#b8d899', pc2: '#78ad60' },
+      file: 'assets/fruits/8.webp', pc1: '#b8d899', pc2: '#78ad60' },
     { name: '绿猫 9',   r: 94,  c1: '#f0e2c6', c2: '#9b7b4f', line: 'rgba(90,64,32,.35)',
-      file: 'assets/fruits/9.png',   pc1: '#b8d899', pc2: '#78ad60' },
+      file: 'assets/fruits/9.webp',   pc1: '#b8d899', pc2: '#78ad60' },
     { name: '绿猫 10', r: 108, c1: '#ff9d78', c2: '#c23a2c', line: 'rgba(120,24,16,.32)',
-      file: 'assets/fruits/10.png', pc1: '#b8d899', pc2: '#78ad60' },
+      file: 'assets/fruits/10.webp', pc1: '#b8d899', pc2: '#78ad60' },
     { name: '大绿猫', r: 124, c1: '#7ce878', c2: '#1c8a33', line: 'rgba(12,70,24,.4)',
-      file: 'assets/fruits/11.png', pc1: '#b8d899', pc2: '#78ad60' }
+      file: 'assets/fruits/11.webp', pc1: '#b8d899', pc2: '#78ad60' }
   ];
 
   /* 合成出 tier 的得分（三角数） */
@@ -300,6 +300,27 @@
     }
   }
 
+  /* 按旋转后的全部子圆校正边界，不能用基础半径代替真实轮廓。
+     同时更新世界坐标，保证本子步结束时贴图和碰撞圆位置一致。 */
+  function fitBallToBoard(b) {
+    const c = Math.cos(b.angle), s = Math.sin(b.angle);
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    for (let i = 0; i < b.parts.length; i++) {
+      const p = b.parts[i];
+      const x = (p[0] * c - p[1] * s) * b.r;
+      const y = (p[0] * s + p[1] * c) * b.r;
+      const rr = p[2] * b.r;
+      minX = Math.min(minX, x - rr);
+      maxX = Math.max(maxX, x + rr);
+      minY = Math.min(minY, y - rr);
+      maxY = Math.max(maxY, y + rr);
+    }
+    b.x = clamp(b.x, WALL - minX, W - WALL - maxX);
+    b.y = clamp(b.y, -minY, H - WALL - maxY);
+    syncParts(b);
+  }
+
   function makeBall(x, y, tier, vx, vy) {
     const r = FRUITS[tier].r;
     const m = r * r;
@@ -490,6 +511,7 @@
       b.vx = vx;
       b.vy = vy;
       b.angle += dx / b.r * 0.85;           // 视觉滚动
+      fitBallToBoard(b);                    // 旋转后立即同步，避免轮廓重新伸入墙或地板
 
       if (!b.landed) {
         if (b.contacts > 0 || performance.now() - b.bornAt > 900) b.landed = true;
@@ -578,9 +600,8 @@
       } else {
         const nt = tier + 1;
         const nb = makeBall(mx, my, nt, (a.vx + b.vx) * 0.5, (a.vy + b.vy) * 0.5 - 60);
-        /* 贴着墙合成时，新水果更大，先夹回场地内，避免瞬间穿墙 */
-        nb.x = clamp(nb.x, WALL + nb.r, W - WALL - nb.r);
-        nb.y = Math.min(nb.y, H - WALL - nb.r);
+        /* 新等级的偏移子圆可能比基础半径更大，按真实轮廓夹回场地。 */
+        fitBallToBoard(nb);
         nb.px = nb.x;
         nb.py = nb.y;
         nb.landed = true;
@@ -1330,40 +1351,41 @@
   const SPRITE_RETRY = 3;      // 每个素材最多试几次
 
   function loadSprites() {
-    let left = 0;
-
-    function fetchOne(f, attempt) {
+    function fetchOne(f, attempt, usePng) {
+      const source = usePng ? f.file.replace(/\.webp$/, '.png') : f.file;
       const img = new Image();
+      img.decoding = 'async';
+      img.fetchPriority = (f === FRUITS[state.pending] || f === FRUITS[state.next] || f === FRUITS[0]) ? 'high' : 'low';
       img.onload = () => {
         const ready = () => {
           f.img = img;
-          if (--left === 0) refreshPreviews();
+          // 一张就绪就更新，避免“下一个”和合成表等到最慢的图片才显示。
+          refreshPreviews();
         };
         if (img.decode) img.decode().then(ready, ready);
         else ready();
       };
       img.onerror = () => {
+        // 保留 PNG 回退：不支持 WebP 或压缩文件缺失时仍能正常游玩。
+        if (!usePng) { fetchOne(f, 1, true); return; }
         if (attempt < SPRITE_RETRY) {
           /* 退避 + 抖动，避免一批图同时重试又同时失败 */
           const wait = 600 * Math.pow(2.4, attempt - 1) + Math.random() * 300;
-          setTimeout(() => fetchOne(f, attempt + 1), wait);
+          setTimeout(() => fetchOne(f, attempt + 1, true), wait);
           return;
         }
-        left--;
         if (window.console) console.warn('[green-cat] 素材载入失败，已回退为程序化水果：' + f.file);
-        if (left === 0) refreshPreviews();
       };
       /* 重试时换一个带参地址，绕开浏览器对上次失败结果的缓存 */
-      img.src = attempt > 1 ? (f.file + '?retry=' + attempt) : f.file;
+      img.src = attempt > 1 ? (source + '?retry=' + attempt) : source;
     }
 
-    for (let i = 0; i < FRUITS.length; i++) {
+    const order = [...new Set([state.pending, state.next, 0, ...SPAWN_TIERS, ...FRUITS.map((_, i) => i)])];
+    for (const i of order) {
       const f = FRUITS[i];
       if (!f.file) continue;
-      left++;
-      fetchOne(f, 1);
+      fetchOne(f, 1, false);
     }
-    return left;
   }
 
   function refreshPreviews() {

@@ -1,7 +1,7 @@
-/* 本地字体：断网打开也能显示；授权见 assets/fonts/OFL.txt。 */
+/* 仅打包游戏所需字形；修改文案后运行 tools/optimize_assets.py。授权见 assets/fonts/OFL.txt。 */
 @font-face {
   font-family: 'Green Cat Happy';
-  src: url('assets/fonts/ZCOOLKuaiLe-Regular.ttf') format('truetype');
+  src: url('assets/fonts/GreenCat-UI.woff2') format('woff2');
   font-style: normal;
   font-weight: 400;
   font-display: swap;

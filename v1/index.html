@@ -11,6 +11,8 @@
 <meta name="description" content="合成大绿猫 · 纯前端小游戏：拖动瞄准、松手投放，相同的撞在一起合成更大的一只。">
 
 <title>合成大绿猫</title>
+<link rel="icon" type="image/webp" href="assets/favicon.webp">
+<link rel="preload" as="image" type="image/webp" href="assets/fruits/1.webp" fetchpriority="high">
 <link rel="stylesheet" href="fonts.css"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="garden.css">
 </head>
 <body>
@@ -65,7 +67,7 @@
   <!-- ===== 侧边面板 ===== -->
   <aside class="panel">
 
-    <header class="panel-head"><img class="garden-mascot" src="assets/fruits/1.png" alt="" aria-hidden="true">
+    <header class="panel-head"><picture><source srcset="assets/fruits/1.webp" type="image/webp"><img class="garden-mascot" src="assets/fruits/1.png" width="72" height="80" decoding="async" fetchpriority="high" alt="" aria-hidden="true"></picture>
       <h1>合成大绿猫</h1>
       <p class="subtitle">相同的撞在一起，越合越大</p>
     </header>
